@@ -269,7 +269,7 @@ const delayedRafRef = useRef<number | null>(null);
       description: 'Binary classification system analyzing 44K news articles using natural language processing',
       link: '/fake-news',
       color: '#3b82f6',
-      stats: { accuracy: '73.7%', data: '44K', type: 'NLP' }
+      stats: { accuracy: '94%', data: '44K', type: 'NLP' }
     },
     {
       id: 2,
@@ -278,7 +278,7 @@ const delayedRafRef = useRef<number | null>(null);
       description: 'Real-time emotion detection and conversational AI for mental health support',
       link: '/mental-health',
       color: '#a855f7',
-      stats: { accuracy: '73.7%', data: '6 Classes', type: 'Classification' }
+      stats: { accuracy: '85%', data: '6 Classes', type: 'Classification' }
     },
     {
       id: 3,
@@ -287,7 +287,7 @@ const delayedRafRef = useRef<number | null>(null);
       description: 'Intelligent ATS matching system with PDF parsing and skill extraction',
       link: '/resume-screener',
       color: '#10b981',
-      stats: { accuracy: '74%', data: 'PDF', type: 'Matching' }
+      stats: { accuracy: '96%', data: 'PDF', type: 'Matching' }
     },
     {
       id: 4,

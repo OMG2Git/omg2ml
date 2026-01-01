@@ -371,7 +371,7 @@ const delayedRafRef = useRef<number | null>(null);
             <div className="flex flex-wrap justify-center gap-6">
               <div className="bg-gray-900/50 backdrop-blur-md border border-gray-800 px-6 py-3 rounded-xl">
                 <p className="text-sm text-gray-500">Accuracy</p>
-                <p className="text-2xl font-bold text-blue-400">73.7%</p>
+                <p className="text-2xl font-bold text-blue-400">94%</p>
               </div>
               <div className="bg-gray-900/50 backdrop-blur-md border border-gray-800 px-6 py-3 rounded-xl">
                 <p className="text-sm text-gray-500">Dataset</p>
