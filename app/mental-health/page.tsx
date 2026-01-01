@@ -61,7 +61,7 @@ export default function MentalHealthChatbot() {
   const neuralCanvasRef = useRef<HTMLCanvasElement>(null);
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const nodeHistoryRef = useRef<Array<{ x: number; y: number; time: number }>>([]);
-  const delayedRafRef = useRef<number>();
+const delayedRafRef = useRef<number | null>(null);
   const lastUpdateTime = useRef(0);
 
   const scrollToBottom = () => {
