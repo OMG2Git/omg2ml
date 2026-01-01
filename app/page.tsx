@@ -249,7 +249,7 @@ const delayedRafRef = useRef<number | null>(null);
     const link = document.createElement('a');
 
     // Set the href to your resume file path (place your resume in the public folder)
-    link.href = '/tempresume.pdf';
+    link.href = '/OM\'s Resume.pdf';
 
     // Set the download attribute with desired filename
     link.download = 'Om_Gosavi_Resume.pdf';
