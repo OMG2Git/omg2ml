@@ -350,7 +350,13 @@ export default function ResumeScreener() {
 
 
     const handleAnalyze = async () => {
+        console.log('🔍 handleAnalyze called');
+        console.log('🔍 userAgent =', navigator.userAgent);
+        console.log('🔍 resumeFile =', resumeFile);
+        console.log('🔍 jobDescription length =', jobDescription.length);
+
         if (!resumeFile || !jobDescription.trim()) {
+            console.log('⛔ Blocked: missing file or job description');
             setError('Please upload a resume and enter a job description');
             return;
         }
