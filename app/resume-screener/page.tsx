@@ -589,9 +589,10 @@ export default function ResumeScreener() {
                                 {/* ADD THIS BLOCK HERE ⬇️ */}
                                 {getIsMobile() && (
                                     <p className="mt-2 text-xs text-yellow-400">
-                                        ⚠️ On mobile, analysis is approximate. For best results, use desktop to upload your full resume.
+                                        ⚠️ Full resume analysis is only available on desktop. Please use a laptop/PC for best results.
                                     </p>
                                 )}
+
                             </div>
 
                             {/* Job Description */}
@@ -639,11 +640,12 @@ export default function ResumeScreener() {
                             onClick={handleAnalyze}
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
-                            disabled={loading || !resumeFile || !jobDescription.trim()}
+                            disabled={loading || getIsMobile() || !resumeFile || !jobDescription.trim()}
                             className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-12 py-4 rounded-lg text-lg font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                            {loading ? 'Analyzing... (may take 1-2 min on first use)' : 'Analyze Resume'}
+                            {loading ? 'Analyzing...' : 'Analyze Resume'}
                         </button>
+
 
 
                         {/* Error */}
