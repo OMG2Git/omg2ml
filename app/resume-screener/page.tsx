@@ -32,8 +32,9 @@ interface NeuralConnection {
     color: string;
 }
 
-const isMobile =
+const getIsMobile = () =>
     typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+
 
 
 
@@ -322,30 +323,34 @@ export default function ResumeScreener() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Mobile often gives empty or odd MIME types; fall back to extension check
         const validTypes = [
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain',
         ];
+
         const isKnownType = validTypes.includes(file.type);
         const hasKnownExtension = /\.(pdf|docx|txt)$/i.test(file.name);
 
         if (!isKnownType && !hasKnownExtension) {
             setError('Please upload a PDF, DOCX, or TXT file');
+            setResumeFile(null);
             return;
         }
 
-        // Tighter limit on mobile
+        const isMobile = getIsMobile();
         const maxSizeMB = isMobile ? 3 : 5;
+
         if (file.size > maxSizeMB * 1024 * 1024) {
             setError(`File size should be less than ${maxSizeMB}MB`);
+            setResumeFile(null);
             return;
         }
 
         setResumeFile(file);
         setError('');
     };
+
 
 
 
@@ -367,7 +372,6 @@ export default function ResumeScreener() {
         setResult(null);
 
         try {
-            // Build FormData for both desktop and mobile
             const formData = new FormData();
             formData.append('resume_file', resumeFile);
             formData.append('job_description', jobDescription);
@@ -395,8 +399,8 @@ export default function ResumeScreener() {
                     ? err.message
                     : 'An error occurred while analyzing the resume';
 
-            // Mobile‑friendly messages for generic network issues[web:71]
             if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                // Generic browser network failure wording tuned for mobile[web:71]
                 setError('Network issue while uploading from mobile. Try again or use a smaller file.');
             } else {
                 setError(msg);
@@ -405,6 +409,7 @@ export default function ResumeScreener() {
             setLoading(false);
         }
     };
+
 
 
 
