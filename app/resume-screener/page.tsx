@@ -587,11 +587,6 @@ export default function ResumeScreener() {
                                     </div>
                                 )}
                                 {/* ADD THIS BLOCK HERE ⬇️ */}
-                                {getIsMobile() && (
-                                    <p className="mt-2 text-xs text-yellow-400">
-                                        ⚠️ Full resume analysis is only available on desktop. Please use a laptop/PC for best results.
-                                    </p>
-                                )}
 
                             </div>
 
@@ -645,6 +640,11 @@ export default function ResumeScreener() {
                         >
                             {loading ? 'Analyzing...' : 'Analyze Resume'}
                         </button>
+                        {getIsMobile() && (
+                            <p className="mt-2 text-xs text-yellow-400">
+                                ⚠️ Full resume analysis is only available on desktop. Please use a laptop/PC for best results.
+                            </p>
+                        )}
 
 
 
