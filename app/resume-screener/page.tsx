@@ -337,56 +337,97 @@ const delayedRafRef = useRef<number | null>(null);
     setResult(null);
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
+// FIXED: Mobile-compatible base64 conversion
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = () => {
+      try {
         const result = reader.result as string;
+        
+        // CRITICAL FIX: Validate base64 string before sending
+        if (!result || typeof result !== 'string') {
+          reject(new Error('Invalid file format'));
+          return;
+        }
+        
+        // CRITICAL FIX: Check if it's a valid data URL
+        if (!result.startsWith('data:')) {
+          reject(new Error('Invalid file encoding'));
+          return;
+        }
+        
         resolve(result);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleAnalyze = async () => {
-    if (!resumeFile || !jobDescription.trim()) {
-      setError('Please upload a resume and enter a job description');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setResult(null);
-
-    try {
-      const base64File = await fileToBase64(resumeFile);
-
-      const response = await fetch('https://ooommmggg-mlbackk.hf.space/api/resume/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resume_file: base64File,
-          resume_filename: resumeFile.name,
-          job_description: jobDescription,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze resume');
+      } catch (err) {
+        reject(new Error('Error processing file'));
       }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error reading file. Please try again.'));
+    };
+    
+    // CRITICAL FIX: Use readAsDataURL (works best on mobile)
+    reader.readAsDataURL(file);
+  });
+};
 
-      setResult(data.result);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while analyzing the resume');
-    } finally {
-      setLoading(false);
+
+const handleAnalyze = async () => {
+  if (!resumeFile || !jobDescription.trim()) {
+    setError('Please upload a resume and enter a job description');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setResult(null);
+
+  try {
+    // CRITICAL FIX: Add timeout and better error handling
+    const base64File = await Promise.race([
+      fileToBase64(resumeFile),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('File processing timeout. Please try a smaller file.')), 30000)
+      )
+    ]);
+
+    // CRITICAL FIX: Validate base64 size (mobile browsers have stricter limits)
+    const base64Size = base64File.length;
+    if (base64Size > 10 * 1024 * 1024) { // 10MB limit for base64
+      throw new Error('File too large after encoding. Please use a smaller file.');
     }
-  };
+
+    console.log('File encoded successfully, size:', base64Size);
+
+    const response = await fetch('https://ooommmggg-mlbackk.hf.space/api/resume/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        resume_file: base64File,
+        resume_filename: resumeFile.name,
+        job_description: jobDescription,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to analyze resume');
+    }
+
+    setResult(data.result);
+  } catch (err: any) {
+    console.error('Analysis error:', err);
+    setError(err.message || 'An error occurred while analyzing the resume');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
