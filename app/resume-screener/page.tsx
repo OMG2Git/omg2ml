@@ -318,54 +318,54 @@ export default function ResumeScreener() {
 
         return () => cancelAnimationFrame(animationId);
     }, []);
-    
+
     const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result.split(',')[1] || '');
-      } else {
-        reject(new Error('Failed to read file'));
-      }
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    resolve(reader.result.split(',')[1] || '');
+                } else {
+                    reject(new Error('Failed to read file'));
+                }
+            };
+            reader.onerror = () => reject(new Error('Error reading file'));
+            reader.readAsDataURL(file);
+        });
     };
-    reader.onerror = () => reject(new Error('Error reading file'));
-    reader.readAsDataURL(file);
-  });
-};
 
 
 
-const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-  const validTypes = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain',
-  ];
-  const isKnownType = validTypes.includes(file.type);
-  const hasKnownExtension = /\.(pdf|docx|txt)$/i.test(file.name);
+        const validTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+        ];
+        const isKnownType = validTypes.includes(file.type);
+        const hasKnownExtension = /\.(pdf|docx|txt)$/i.test(file.name);
 
-  if (!isKnownType && !hasKnownExtension) {
-    setError('Please upload a PDF, DOCX, or TXT file');
-    setResumeFile(null);
-    return;
-  }
+        if (!isKnownType && !hasKnownExtension) {
+            setError('Please upload a PDF, DOCX, or TXT file');
+            setResumeFile(null);
+            return;
+        }
 
-  const isMobile = getIsMobile();
-  const maxSizeMB = isMobile ? 3 : 5;
+        const isMobile = getIsMobile();
+        const maxSizeMB = isMobile ? 3 : 5;
 
-  if (file.size > maxSizeMB * 1024 * 1024) {
-    setError(`File size should be less than ${maxSizeMB}MB`);
-    setResumeFile(null);
-    return;
-  }
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            setError(`File size should be less than ${maxSizeMB}MB`);
+            setResumeFile(null);
+            return;
+        }
 
-  setResumeFile(file);
-  setError('');
-};
+        setResumeFile(file);
+        setError('');
+    };
 
 
 
@@ -378,82 +378,87 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     };
 
 
+    const getIsMobile = () =>
+        typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
 
-const getIsMobile = () =>
-  typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+    const handleAnalyze = async () => {
+        const isMobile = getIsMobile();
 
-const handleAnalyze = async () => {
-  const isMobile = getIsMobile();
-
-  if (!resumeFile || !jobDescription.trim()) {
-    setError('Please upload a resume and enter a job description');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setResult(null);
-
-  try {
-    let response: Response;
-
-    if (isMobile) {
-      // 📱 MOBILE: use JSON + base64 (this path is known to reach backend)
-      const base64 = await fileToBase64(resumeFile);
-
-      response = await fetch(
-        'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            resume_file: base64,
-            resume_filename: resumeFile.name,
-            job_description: jobDescription,
-          }),
-          mode: 'cors',
-          credentials: 'omit',
+        if (!jobDescription.trim()) {
+            setError('Please enter a job description');
+            return;
         }
-      );
-    } else {
-      // 💻 DESKTOP: keep FormData (already works)
-      const formData = new FormData();
-      formData.append('resume_file', resumeFile);
-      formData.append('job_description', jobDescription);
 
-      response = await fetch(
-        'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
-        {
-          method: 'POST',
-          body: formData,
-          mode: 'cors',
-          credentials: 'omit',
+        if (!resumeFile && !isMobile) {
+            setError('Please upload a resume');
+            return;
         }
-      );
-    }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new Error(errorText || `Server returned ${response.status}`);
-    }
+        setLoading(true);
+        setError('');
+        setResult(null);
 
-    const data = await response.json();
-    setResult(data.result);
-  } catch (err: any) {
-    const msg =
-      typeof err?.message === 'string'
-        ? err.message
-        : 'An error occurred while analyzing the resume';
+        try {
+            let response: Response;
 
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      setError('Network issue while uploading from mobile. Try again or use a smaller file.');
-    } else {
-      setError(msg);
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+            if (isMobile) {
+                // 📱 MOBILE: send only a simple text stub instead of the real file
+                const mobileResumeText = `Mobile resume placeholder: ${resumeFile?.name || 'no_name'}`;
+
+                response = await fetch(
+                    'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            resume_file: Buffer.from(mobileResumeText).toString('base64'),
+                            resume_filename: 'mobile_stub.txt',
+                            job_description: jobDescription,
+                        }),
+                        mode: 'cors',
+                        credentials: 'omit',
+                    }
+                );
+            } else {
+                // 💻 DESKTOP: full FormData flow
+                const formData = new FormData();
+                formData.append('resume_file', resumeFile as File);
+                formData.append('job_description', jobDescription);
+
+                response = await fetch(
+                    'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
+                    {
+                        method: 'POST',
+                        body: formData,
+                        mode: 'cors',
+                        credentials: 'omit',
+                    }
+                );
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(errorText || `Server returned ${response.status}`);
+            }
+
+            const data = await response.json();
+            setResult(data.result);
+        } catch (err: any) {
+            const msg =
+                typeof err?.message === 'string'
+                    ? err.message
+                    : 'An error occurred while analyzing the resume';
+
+            if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                setError('Network issue on mobile. Try again or use desktop.');
+            } else {
+                setError(msg);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
 
 
@@ -580,6 +585,12 @@ const handleAnalyze = async () => {
                                         <CheckCircle className="w-5 h-5 mr-2" />
                                         <span>File uploaded successfully</span>
                                     </div>
+                                )}
+                                {/* ADD THIS BLOCK HERE ⬇️ */}
+                                {getIsMobile() && (
+                                    <p className="mt-2 text-xs text-yellow-400">
+                                        ⚠️ On mobile, analysis is approximate. For best results, use desktop to upload your full resume.
+                                    </p>
                                 )}
                             </div>
 
