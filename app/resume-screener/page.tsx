@@ -32,6 +32,9 @@ interface NeuralConnection {
     color: string;
 }
 
+const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+
+
 const EXAMPLE_JDS = {
     ml: `Machine Learning Intern - AI/ML Team
 
@@ -316,14 +319,20 @@ export default function ResumeScreener() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+            const validTypes = [
+                'application/pdf',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'text/plain',
+            ];
             if (!validTypes.includes(file.type)) {
                 setError('Please upload a PDF, DOCX, or TXT file');
                 return;
             }
 
-            if (file.size > 5 * 1024 * 1024) {
-                setError('File size should be less than 5MB');
+            // Tighter limit on mobile
+            const maxSizeMB = isMobile ? 3 : 5;
+            if (file.size > maxSizeMB * 1024 * 1024) {
+                setError(`File size should be less than ${maxSizeMB}MB on mobile`);
                 return;
             }
 
@@ -331,6 +340,7 @@ export default function ResumeScreener() {
             setError('');
         }
     };
+
 
     const loadExampleJD = (type: 'ml' | 'cybersecurity') => {
         setJobDescription(EXAMPLE_JDS[type]);
@@ -403,9 +413,9 @@ export default function ResumeScreener() {
             console.error('❌ Error:', err);
 
             if (err.name === 'AbortError') {
-                setError('Request timed out. The server might be starting up. Please try again in 30 seconds.');
+                setError('Request timed out. Your connection might be slow on mobile. Try again or use a smaller file.');
             } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-                setError('Server is starting up. Please wait 30 seconds and try again.');
+                setError('Network error on mobile. Check your internet or try again.');
             } else {
                 setError(err.message || 'An error occurred while analyzing the resume');
             }
