@@ -33,7 +33,7 @@ interface NeuralConnection {
 }
 
 const getIsMobile = () =>
-    typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+  typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
 
 
 
@@ -361,54 +361,82 @@ export default function ResumeScreener() {
 
 
 
-    const handleAnalyze = async () => {
-        if (!resumeFile || !jobDescription.trim()) {
-            setError('Please upload a resume and enter a job description');
-            return;
+const handleAnalyze = async () => {
+  const isMobile = getIsMobile();
+
+  if (!jobDescription.trim()) {
+    setError('Please enter a job description');
+    return;
+  }
+
+  if (!resumeFile && !isMobile) {
+    setError('Please upload a resume');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setResult(null);
+
+  try {
+    let response: Response;
+
+    if (isMobile) {
+      // 🔹 TEMP: mobile sends only JD text so we can see POST in logs
+      response = await fetch(
+        'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_description: jobDescription,
+            resume_file: Buffer.from('MOBILE_TEST_ONLY').toString('base64'),
+            resume_filename: 'mobile_test.txt',
+          }),
+          mode: 'cors',
+          credentials: 'omit',
         }
+      );
+    } else {
+      // Desktop keeps full FormData flow
+      const formData = new FormData();
+      formData.append('resume_file', resumeFile as File);
+      formData.append('job_description', jobDescription);
 
-        setLoading(true);
-        setError('');
-        setResult(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('resume_file', resumeFile);
-            formData.append('job_description', jobDescription);
-
-            const response = await fetch(
-                'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
-                {
-                    method: 'POST',
-                    body: formData,
-                    mode: 'cors',
-                    credentials: 'omit',
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => '');
-                throw new Error(errorText || `Server returned ${response.status}`);
-            }
-
-            const data = await response.json();
-            setResult(data.result);
-        } catch (err: any) {
-            const msg =
-                typeof err?.message === 'string'
-                    ? err.message
-                    : 'An error occurred while analyzing the resume';
-
-            if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-                // Generic browser network failure wording tuned for mobile[web:71]
-                setError('Network issue while uploading from mobile. Try again or use a smaller file.');
-            } else {
-                setError(msg);
-            }
-        } finally {
-            setLoading(false);
+      response = await fetch(
+        'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
+        {
+          method: 'POST',
+          body: formData,
+          mode: 'cors',
+          credentials: 'omit',
         }
-    };
+      );
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(errorText || `Server returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    setResult(data.result);
+  } catch (err: any) {
+    const msg =
+      typeof err?.message === 'string'
+        ? err.message
+        : 'An error occurred while analyzing the resume';
+
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      setError('Network issue on mobile. Try again or use desktop.');
+    } else {
+      setError(msg);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
 
 
