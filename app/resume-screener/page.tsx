@@ -350,34 +350,42 @@ const handleAnalyze = async () => {
   setResult(null);
 
   try {
-    // CRITICAL FIX: Use FormData instead of base64
     const formData = new FormData();
     formData.append('resume_file', resumeFile);
     formData.append('job_description', jobDescription);
 
-    console.log('📱 Uploading file:', resumeFile.name, 'Size:', resumeFile.size);
+    console.log('📱 Uploading from mobile:', resumeFile.name);
 
     const response = await fetch('https://ooommmggg-mlbackk.hf.space/api/resume/analyze', {
       method: 'POST',
-      // DO NOT set Content-Type header - browser sets it automatically with boundary
       body: formData,
+      mode: 'cors',  // Explicitly set CORS mode
+      credentials: 'omit',  // Don't send cookies
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to analyze resume');
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error(`Server returned ${response.status}`);
     }
 
+    const data = await response.json();
     console.log('✅ Analysis complete!');
     setResult(data.result);
+    
   } catch (err: any) {
-    console.error('❌ Analysis error:', err);
-    setError(err.message || 'An error occurred while analyzing the resume');
+    console.error('❌ Full error:', err);
+    
+    if (err.message.includes('Failed to fetch')) {
+      setError('Network error. Check your connection and try again.');
+    } else {
+      setError(err.message || 'An error occurred');
+    }
   } finally {
     setLoading(false);
   }
 };
+
 
 
   const getScoreColor = (score: number) => {
