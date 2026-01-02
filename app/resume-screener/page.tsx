@@ -32,7 +32,9 @@ interface NeuralConnection {
     color: string;
 }
 
-const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+const isMobile =
+    typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+
 
 
 const EXAMPLE_JDS = {
@@ -318,28 +320,33 @@ export default function ResumeScreener() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const validTypes = [
-                'application/pdf',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'text/plain',
-            ];
-            if (!validTypes.includes(file.type)) {
-                setError('Please upload a PDF, DOCX, or TXT file');
-                return;
-            }
+        if (!file) return;
 
-            // Tighter limit on mobile
-            const maxSizeMB = isMobile ? 3 : 5;
-            if (file.size > maxSizeMB * 1024 * 1024) {
-                setError(`File size should be less than ${maxSizeMB}MB on mobile`);
-                return;
-            }
+        // Mobile often gives empty or odd MIME types; fall back to extension check
+        const validTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+        ];
+        const isKnownType = validTypes.includes(file.type);
+        const hasKnownExtension = /\.(pdf|docx|txt)$/i.test(file.name);
 
-            setResumeFile(file);
-            setError('');
+        if (!isKnownType && !hasKnownExtension) {
+            setError('Please upload a PDF, DOCX, or TXT file');
+            return;
         }
+
+        // Tighter limit on mobile
+        const maxSizeMB = isMobile ? 3 : 5;
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            setError(`File size should be less than ${maxSizeMB}MB`);
+            return;
+        }
+
+        setResumeFile(file);
+        setError('');
     };
+
 
 
     const loadExampleJD = (type: 'ml' | 'cybersecurity') => {
@@ -350,13 +357,7 @@ export default function ResumeScreener() {
 
 
     const handleAnalyze = async () => {
-        console.log('🔍 handleAnalyze called');
-        console.log('🔍 userAgent =', navigator.userAgent);
-        console.log('🔍 resumeFile =', resumeFile);
-        console.log('🔍 jobDescription length =', jobDescription.length);
-
         if (!resumeFile || !jobDescription.trim()) {
-            console.log('⛔ Blocked: missing file or job description');
             setError('Please upload a resume and enter a job description');
             return;
         }
@@ -366,69 +367,45 @@ export default function ResumeScreener() {
         setResult(null);
 
         try {
-            console.log('📱 Step 1: Waking up server...');
-
-            // CRITICAL FIX: Wake up the Hugging Face Space first
-            try {
-                const healthCheck = await Promise.race([
-                    fetch('https://ooommmggg-mlbackk.hf.space/api/resume/health', {
-                        method: 'GET',
-                        mode: 'cors',
-                    }),
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('timeout')), 90000) // 90 seconds for wake-up
-                    )
-                ]);
-                console.log('✅ Server is awake!');
-            } catch (err) {
-                console.log('⚠️ Server might be starting, continuing anyway...');
-            }
-
-            console.log('📱 Step 2: Uploading file:', resumeFile.name);
-
-            // Create FormData
+            // Build FormData for both desktop and mobile
             const formData = new FormData();
             formData.append('resume_file', resumeFile);
             formData.append('job_description', jobDescription);
 
-            // CRITICAL FIX: Add longer timeout for mobile + cold start
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
-
-            const response = await fetch('https://ooommmggg-mlbackk.hf.space/api/resume/analyze', {
-                method: 'POST',
-                body: formData,
-                mode: 'cors',
-                credentials: 'omit',
-                signal: controller.signal,
-            });
-
-            clearTimeout(timeoutId);
+            const response = await fetch(
+                'https://ooommmggg-mlbackk.hf.space/api/resume/analyze',
+                {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors',
+                    credentials: 'omit',
+                }
+            );
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Server error:', errorText);
-                throw new Error(`Server returned ${response.status}`);
+                const errorText = await response.text().catch(() => '');
+                throw new Error(errorText || `Server returned ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('✅ Analysis complete!');
             setResult(data.result);
-
         } catch (err: any) {
-            console.error('❌ Error:', err);
+            const msg =
+                typeof err?.message === 'string'
+                    ? err.message
+                    : 'An error occurred while analyzing the resume';
 
-            if (err.name === 'AbortError') {
-                setError('Request timed out. Your connection might be slow on mobile. Try again or use a smaller file.');
-            } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-                setError('Network error on mobile. Check your internet or try again.');
+            // Mobile‑friendly messages for generic network issues[web:71]
+            if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                setError('Network issue while uploading from mobile. Try again or use a smaller file.');
             } else {
-                setError(err.message || 'An error occurred while analyzing the resume');
+                setError(msg);
             }
         } finally {
             setLoading(false);
         }
     };
+
 
 
 
